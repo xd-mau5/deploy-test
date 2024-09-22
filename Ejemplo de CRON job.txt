@@ -1,0 +1,5 @@
+# Ejemplo de CRON job
+# Este debe correr cada 30 dias
+0 0 1 * * /usr/bin/python3 /etc/scripts/descargaListaONU.py
+0 0 1 * * /usr/bin/python3 /etc/scripts/descargarListaOFAC.py
+# https://crontab.guru/#0_0_1_*_*
