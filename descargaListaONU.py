@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 import requests
 import ssl
 from requests.adapters import HTTPAdapter
@@ -9,7 +10,9 @@ from sqlalchemy import create_engine
 import json
 import pymysql
 from email.message import EmailMessage
+from dotenv import load_dotenv
 
+load_dotenv()
 class SSLAdapter(HTTPAdapter):
     def init_poolmanager(self, *args, **kwargs):
         context = ssl.create_default_context()
@@ -111,10 +114,10 @@ if response.status_code == 200:
     df = pd.DataFrame(data)
     # Actualizar un registro en la base de datos
     db_config = {
-        'host': 'localhost',
-        'user': 'root',
-        'password': 'password',
-        'database': 'tufondo_db'
+        'host': os.getenv('DB_HOST'),
+        'user': os.getenv('DB_USER'),
+        'password': os.getenv('DB_PASSWORD'),
+        'database': os.getenv('DB_NAME'),
     }
 
     # Establecer la conexión y ejecutar la consulta
@@ -146,9 +149,9 @@ if response.status_code == 200:
     # Insertar los datos en la base de datos
     df.to_sql('controlVigilancia_detalles_lista_control', con=engine, if_exists='append', index=False)
     print("Datos insertados en la base de datos.")
-    sender_email = "sistemas@tufondo.net"
-    password = 'ndntjtqvgkodxlfc'
-    receiver_email = 'omar.izquierdo@tdpsolutions.co'
+    sender_email = os.getenv('EMAIL_SENDER')
+    password = os.getenv('EMAIL_APP_PASSWORD')
+    receiver_email = os.getenv('EMAIL_RECEIVER')
     subject = "Sanciones ONU - Descarga Exitosa"
     message = EmailMessage()
     message['Subject'] = subject
@@ -162,9 +165,9 @@ if response.status_code == 200:
     print("Se ha enviado un correo de notificación.")
 else:
     print(f"Failed to download file. Status code: {response.status_code}")
-    sender_email = "sistemas@tufondo.net"
-    password = 'ndntjtqvgkodxlfc'
-    receiver_email = 'omar.izquierdo@tdpsolutions.co'
+    sender_email = os.getenv('EMAIL_SENDER')
+    password = os.getenv('EMAIL_APP_PASSWORD')
+    receiver_email = os.getenv('EMAIL_RECEIVER')
     message = EmailMessage()
     message['Subject'] = "Error: Fallo en la descarga de la lista de sanciones de la ONU"
     message['From'] = sender_email

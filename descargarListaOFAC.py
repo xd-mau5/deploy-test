@@ -1,5 +1,6 @@
 from datetime import datetime
 from email.message import EmailMessage
+import os
 import requests
 import smtplib
 import pandas as pd
@@ -7,6 +8,9 @@ import xml.etree.ElementTree as ET
 from sqlalchemy import create_engine
 import json
 import pymysql
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # URL de la lista de sanciones de OFAC en formato XML
 url = "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.XML"
@@ -70,9 +74,20 @@ if response.status_code == 200:
             else:
                 entry_data[child.tag.replace('{https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/XML}', '')] = child.text
         data.append(entry_data)
-    df = pd.DataFrame(data)
-    # Crear la conexión a la base de datos
-    engine = create_engine('mysql+pymysql://root:password@localhost:3306/tufondo_db')
+    df = pd.DataFrame(data)    
+    # Obtener las variables de entorno
+    db_user = os.getenv('DB_USER')
+    db_password = os.getenv('DB_PASSWORD')
+    db_host = os.getenv('DB_HOST')
+    db_name = os.getenv('DB_NAME')
+    
+    # Verificar que ninguna variable de entorno sea None
+    if None in (db_user, db_password, db_host, db_name):
+        raise ValueError("Una o más variables de entorno necesarias no están definidas")
+    
+    # Construir la cadena de conexión
+    sql_connection = f'mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_name}'
+    engine = create_engine(sql_connection)
     # Crear una lista para almacenar los datos
     data = []
     # Iterar sobre cada fila en el DataFrame para "Individual"
@@ -110,10 +125,10 @@ if response.status_code == 200:
     print(f"Publication Date: {publication_date}")
     # Configuración de la conexión a la base de datos
     db_config = {
-        'host': 'localhost',
-        'user': 'root',
-        'password': 'password',
-        'database': 'tufondo_db'
+        'host': os.getenv('DB_HOST'),
+        'user': os.getenv('DB_USER'),
+        'password': os.getenv('DB_PASSWORD'),
+        'database': os.getenv('DB_NAME'),
     }
 
     # Establecer la conexión y ejecutar la consulta
@@ -145,9 +160,10 @@ if response.status_code == 200:
     # Insertar los datos en la base de datos
     df.to_sql('controlVigilancia_detalles_lista_control', con=engine, if_exists='append', index=False)
     print("Datos insertados exitosamente en la base de datos!")
-    sender_email = "sistemas@tufondo.net"
-    password = 'ndntjtqvgkodxlfc'
-    receiver_email = 'omar.izquierdo@tdpsolutions.co'
+    sender_email = os.getenv('EMAIL_SENDER')
+    password = os.getenv('EMAIL_APP_PASSWORD')
+    receiver_email = os.getenv('EMAIL_RECEIVER')
+    print(sender_email, password, receiver_email)
     subject = "Sanciones OFAC - Descarga Exitosa"
     message = EmailMessage()
     message['Subject'] = subject
@@ -161,9 +177,9 @@ if response.status_code == 200:
     print("Se ha enviado un correo de notificación.")
 else:
     print("Error al descargar el archivo. Código de estado:", response.status_code)
-    sender_email = "sistemas@tufondo.net"
-    password = 'ndntjtqvgkodxlfc'
-    receiver_email = 'omar.izquierdo@tdpsolutions.co'
+    sender_email = os.getenv('EMAIL_SENDER')
+    password = os.getenv('EMAIL_APP_PASSWORD')
+    receiver_email = os.getenv('EMAIL_RECEIVER')
     subject = "Error: Fallo en la descarga de la lista de sanciones de la ONU"
     message = EmailMessage()
     message['Subject'] = subject
