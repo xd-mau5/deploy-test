@@ -76,8 +76,9 @@ if response.status_code == 200:
                     entity_data[child.tag] = [entity_data[child.tag], child.text]
         data_entitites.append(entity_data)
     df_onu_entity = pd.DataFrame(data_entitites)
-    # Crear la conexión a la base de datos
-    engine = create_engine('mysql+pymysql://root:password@localhost:3306/tufondo_db')
+    # Crear la conexión a la base de datos usando el .env
+    engine_url = f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}"
+    engine = create_engine(engine_url)
     # Crear una lista para almacenar los datos
     data = []
     # Iterar sobre cada columna en el DataFrame
